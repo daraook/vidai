@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Lint + suite de tests. Ubuntu sur tous les Python supportés ;
+  # macOS et Windows sur un Python de référence (couverture OS sans exploser la matrice).
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: macos-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (avec deps de dev + mcp)
+        run: pip install -e ".[dev,mcp]"
+      - name: Lint (ruff)
+        run: ruff check src tests
+      - name: Tests (pytest)
+        run: pytest -q
+
+  # Valide l'artefact distribué : build du wheel, install pipx, run réel
+  # (pipeline --visual-only sur vidéo synthétique locale : zéro réseau, zéro modèle).
+  wheel-install:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Build du wheel
+        run: |
+          pip install build
+          python -m build --wheel
+      - name: Install via pipx (comme l'utilisateur final)
+        shell: bash
+        run: |
+          pip install pipx
+          pipx install dist/*.whl
+      - name: Smoke test réel (sans réseau)
+        shell: bash
+        run: |
+          vidai --version
+          vidai --check
+          # ffmpeg pour générer la vidéo de test (celui de vidai vit dans le venv pipx)
+          pip install imageio-ffmpeg
+          FFMPEG="$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')"
+          "$FFMPEG" -y -loglevel error -f lavfi -i "testsrc=s=320x240:d=4:r=10" -pix_fmt yuv420p smoke.mp4
+          vidai smoke.mp4 -o smoke-out --visual-only --markdown
+          python -c "
+          import json, pathlib
+          d = json.loads(pathlib.Path('smoke-out/output.json').read_text(encoding='utf-8'))
+          assert d['timeline'], 'timeline vide'
+          for e in d['timeline']:
+              assert (pathlib.Path('smoke-out') / e['frame']).exists(), e['frame']
+          print('smoke OK :', len(d['timeline']), 'keyframes')
+          "
+
+  # Contrôle statique des installateurs (le test d'exécution réel est dans release).
+  install-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Syntaxe bash + shellcheck (install.sh)
+        run: |
+          bash -n install.sh
+          sudo apt-get install -y shellcheck
+          shellcheck install.sh
+      - name: Parse PowerShell (install.ps1)
+        shell: pwsh
+        run: |
+          $t = $null; $e = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("install.ps1", [ref]$t, [ref]$e) | Out-Null
+          if ($e.Count) { $e | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          Write-Host "parse OK"

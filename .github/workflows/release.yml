@@ -1,0 +1,75 @@
+name: Release
+
+# Publie le wheel + sdist en GitHub Release à chaque tag `v*` (ex. v0.1.0),
+# puis vérifie les installateurs de bout en bout sur les 3 OS contre cette
+# release fraîche — exactement le chemin qu'empruntera l'utilisateur final.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Build wheel + sdist
+        run: |
+          pip install build
+          python -m build
+      - name: Cohérence tag ↔ version du paquet
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION="$(python -c 'import tomllib, pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME ≠ version pyproject $VERSION"
+            exit 1
+          fi
+      - name: Créer la GitHub Release avec les artefacts
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "vidai $GITHUB_REF_NAME" \
+            --generate-notes
+
+  # Test bout-en-bout des installateurs contre la release publiée.
+  verify-install:
+    needs: build-and-publish
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: install.sh --yes (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          pip install pipx
+          bash install.sh --yes
+          export PATH="$PATH:$HOME/.local/bin"
+          vidai --version && vidai --check
+      - name: install.ps1 -Yes (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pip install pipx
+          .\install.ps1 -Yes
+          $env:PATH += ";$env:USERPROFILE\.local\bin"
+          vidai --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          vidai --check
+          if ($LASTEXITCODE -ne 0) { exit 1 }
