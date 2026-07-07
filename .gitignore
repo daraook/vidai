@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Outils
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Sorties VidAI (jamais commiter de médias/transcripts)
+out/
+output/
+*.mp4
+*.mkv
+*.webm
+*.wav
+*.mp3
+*.m4a
+
+# Secrets — JAMAIS commités
+.env
+.env.*
+*.key
+cookies.txt
+
+# OS
+.DS_Store
+
+# Doc de genèse (gardée en local, hors dépôt)
+intro.md
+
+# Artefacts de dev (gardés en local, hors dépôt)
+CLAUDE.md
+CONTEXT.md
+.claude/
+# spec comportementale interne (le reste de docs/ est publié)
+docs/spec-vidai.md
+HANDOFF.md

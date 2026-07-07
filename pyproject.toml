@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vidai"
+version = "0.1.2"
+description = "Rend n'importe quelle vidéo en ligne exploitable par un agent IA (texte + frames synchronisés), 100% CPU, sans GPU."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Daraook" }]
+keywords = ["video", "transcription", "whisper", "yt-dlp", "ai-agent", "llm", "cpu"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+dependencies = [
+    "yt-dlp>=2024.1.0",
+    "faster-whisper>=1.0.0",
+    "imageio-ffmpeg>=0.4.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+mcp = ["mcp>=1.2"]
+
+[project.scripts]
+vidai = "vidai.cli:main"
+vidai-mcp = "vidai.mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/daraook/vidai"
+Issues = "https://github.com/daraook/vidai/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vidai"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RET", "C4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
