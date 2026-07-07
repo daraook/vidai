@@ -1,0 +1,42 @@
+name: 🐛 Rapport de bug
+description: Quelque chose ne fonctionne pas comme documenté
+labels: ["bug"]
+body:
+  - type: input
+    id: command
+    attributes:
+      label: Commande exacte
+      placeholder: vidai "https://…" -o ./out --clip 1:00-2:00
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu vs observé
+      description: Ce qui aurait dû se passer, et ce qui s'est réellement passé.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (stderr)
+      description: Sortie complète, en particulier les lignes `[vidai] ERREUR`.
+      render: text
+  - type: textarea
+    id: env
+    attributes:
+      label: Environnement
+      description: OS + version, `vidai --version`, sortie de `vidai --check`.
+      placeholder: |
+        Ubuntu 24.04 / macOS 15 / Windows 11
+        vidai 0.1.0
+        ✓ ffmpeg bundlé · …
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Vérifications
+      options:
+        - label: J'ai lancé `vidai --check` et toutes les dépendances sont ✓
+        - label: La vidéo est publique (ou j'ai fourni `--cookies`)

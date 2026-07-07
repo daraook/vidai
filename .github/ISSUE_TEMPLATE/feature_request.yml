@@ -1,0 +1,26 @@
+name: 💡 Proposition de fonctionnalité
+description: Une idée pour améliorer VidAI
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème à résoudre
+      description: Quel besoin concret cette fonctionnalité couvre-t-elle ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solution proposée
+      description: Comportement souhaité (options CLI, format de sortie…).
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Compatibilité avec les principes du projet
+      description: >
+        VidAI est 100% CPU, sans dépendance système obligatoire, model-agnostic,
+        et privilégie l'économie de tokens côté agent. En quoi la proposition
+        respecte-t-elle ces contraintes ?
